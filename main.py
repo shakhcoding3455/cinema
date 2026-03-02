@@ -905,6 +905,9 @@ def save_movie(msg, code, title, description, year=2024, genre="Noma'lum", count
 
 def get_movie_from_start(msg):
     """Foydalanuvchi start keyin kodni kiritadi"""
+    if msg.text.startswith('/'):
+        return
+    
     if msg.text == "👑 Admin Panel":
         admin_panel(msg)
         return
@@ -948,7 +951,6 @@ def get_movie_from_start(msg):
         caption += f"\n🌍 Mamlakat: {movie[7]}"
     if movie[8] and movie[8] not in ["Noma'lum", ""]:
         caption += f"\n🎭 Janr: {movie[8]}"
-    caption += f"\n\n👁 Ko'rishlar: {movie[11] + 1}"
     caption += f"\n🆔 Kod: `{movie[1]}`"
     
     try:
