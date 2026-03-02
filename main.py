@@ -901,26 +901,22 @@ def save_movie(msg, code, title, description, year=2024, genre="Noma'lum", count
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Bazaga saqlashda xatolik: {e}")
     conn.close()
-
 def get_movie_from_start(msg):
-    """Foydalanuvchi start keyin kodni kiritadi"""
+    """Foydalanuvchi startdan keyin kodni kiritadi"""
+    
+    # 1. Agar foydalanuvchi /start bossa, asosiy menyuga qaytaramiz va 
+    # bu funksiyani to'xtatamiz. (Tugmalar start ichida tozalanadi)
     if msg.text == '/start':
         start(msg)
         return
-    
-    if msg.text.startswith('/'):
-        return
-    
+
+    # 2. Boshqa komandalar bo'lsa, javobsiz qoldiramiz
+    if msg.text and msg.text.startswith('/'):
+        return 
+
+    # 3. Menyularni tekshirish
     if msg.text == "👑 Admin Panel":
         admin_panel(msg)
-        return
-    
-    if msg.text == "🔍 Qidiruv":
-        search_menu(msg)
-        return
-    
-    if msg.text == "ℹ️ Ma'lumot":
-        info_menu(msg)
         return
     
     if msg.text == "🔙 Orqaga":
@@ -932,14 +928,19 @@ def get_movie_from_start(msg):
     c = conn.cursor()
     c.execute('SELECT * FROM movies WHERE code = ?', (code,))
     movie = c.fetchone()
+    
+    # KOD TOPILMAGAN HOLAT
     if not movie:
         conn.close()
+        # Faqat shu yerda "Orqaga" tugmasi chiqadi
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.row("🔙 Orqaga")
-        bot.send_message(msg.chat.id, f"❌ `{code}` kodli film topilmadi!\n\n🔢 Qayta kod kiriting:", parse_mode="Markdown", reply_markup=markup)
+        bot.send_message(msg.chat.id, f"❌ `{code}` kodli film topilmadi!\n\n🔢 Qayta kod kiriting:", 
+                         parse_mode="Markdown", reply_markup=markup)
         bot.register_next_step_handler(msg, get_movie_from_start)
         return
     
+    # KOD TOPILGAN HOLAT
     user_id = msg.from_user.id
     c.execute('INSERT INTO statistics VALUES (NULL, ?, ?, ?)',
               (user_id, code, datetime.now().strftime("%Y-%m-%d %H:%M")))
@@ -947,6 +948,7 @@ def get_movie_from_start(msg):
     conn.commit()
     conn.close()
     
+    # Caption tayyorlash (ko'rishlar sonisiz)
     caption = f"🎬 *{movie[2]}*\n"
     if movie[4] and movie[4].strip() not in ["None", "Tavsif yo'q", ""]:
         caption += f"\n📝 {movie[4]}\n"
@@ -956,17 +958,20 @@ def get_movie_from_start(msg):
         caption += f"\n🌍 Mamlakat: {movie[7]}"
     if movie[8] and movie[8] not in ["Noma'lum", ""]:
         caption += f"\n🎭 Janr: {movie[8]}"
-    caption += f"\n🆔 Kod: `{movie[1]}`"
+    caption += f"\n\n🆔 Kod: `{movie[1]}`"
     
     try:
-        bot.send_video(msg.chat.id, movie[5], caption=caption, parse_mode="Markdown")
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        bot.send_message(msg.chat.id, "🔢 Boshqa kod kiriting:", reply_markup=markup)
+        # Kinoni yuborishda tugmalarni yo'qotamiz (ReplyKeyboardRemove)
+        # Chunki kino yuborilganda "Orqaga" tugmasi turishi shart emas
+        bot.send_video(msg.chat.id, movie[5], caption=caption, 
+                       parse_mode="Markdown", reply_markup=types.ReplyKeyboardRemove())
+        
+        bot.send_message(msg.chat.id, "🔢 Navbatdagi film kodini kiriting:")
         bot.register_next_step_handler(msg, get_movie_from_start)
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Xatolik: {e}")
         bot.register_next_step_handler(msg, get_movie_from_start)
-
+        
 @bot.message_handler(func=lambda m: m.text == "🎬 Kino_DISABLED")
 @check_sub_decorator
 def movies_menu(msg):
