@@ -400,7 +400,6 @@ def start(msg):
     if is_admin(user_id):
         markup.row("👑 Admin Panel")
     bot.send_message(msg.chat.id, welcome, reply_markup=markup)
-    bot.send_message(msg.chat.id, "🔢 Iltimos, film kodini kiriting:")
     bot.register_next_step_handler(msg, get_movie_from_start)
 @bot.message_handler(func=lambda m: m.text == "👑 Admin Panel")
 @check_sub_decorator
