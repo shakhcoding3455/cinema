@@ -6,7 +6,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 TOKEN = "8452726962:AAHgMeF7DBOd_hEmM2Lq39-nCjQ-7rqpULw"
-MAIN_ADMIN_ID = 8201674543  
+MAIN_ADMIN_ID = 7176707054  
 DB_NAME = 'moviequi.db'
 bot = telebot.TeleBot(TOKEN)
 def init_db():
@@ -1250,4 +1250,5 @@ if __name__ == "__main__":
     try:
         bot.infinity_polling(timeout=60, long_polling_timeout=60)
     except Exception as e:
+
         print(f"\n❌ Xatolik: {e}")
