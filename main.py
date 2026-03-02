@@ -909,6 +909,18 @@ def get_movie_from_start(msg):
         admin_panel(msg)
         return
     
+    if msg.text == "🔍 Qidiruv":
+        search_menu(msg)
+        return
+    
+    if msg.text == "ℹ️ Ma'lumot":
+        info_menu(msg)
+        return
+    
+    if msg.text == "🔙 Orqaga":
+        start(msg)
+        return
+    
     code = msg.text.strip().upper()
     conn = get_db()
     c = conn.cursor()
