@@ -292,7 +292,6 @@ def show_channel(msg):
 def main_keyboard(user_id):
     """Asosiy menyu"""
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.row("🎬 Kino")
     if is_admin(user_id):
         markup.row("👑 Admin Panel")
     return markup
@@ -347,7 +346,9 @@ def check_sub_callback(call):
         bot.delete_message(call.message.chat.id, call.message.message_id)
         try:
             if user_id != bot.get_me().id:
-                start(call.message)
+                # Вместо start, просим код
+                bot.send_message(user_id, "👋 Salom!\n\n🎬 Moviequi Bot ga xush kelibsiz!\n\n🔢 Iltimos, film kodini kiriting:")
+                bot.register_next_step_handler(call.message, get_movie_from_start)
         except Exception:
             pass
     else:
@@ -372,7 +373,7 @@ def handle_join_request(q):
         bot.send_message(user_id, "✅ Join request qabul qilindi! Botdan foydalanish uchun kuting yoki kanal adminlarini xabardor qiling.")
     except Exception:
         pass
-@bot.message_handler(func=lambda m: m.text == "🔙 Orqaga")
+@bot.message_handler(func=lambda m: m.text == "🔙 Orqaga_DISABLED")
 @check_sub_decorator
 def handle_back_button(msg):
     start(msg)
@@ -393,10 +394,14 @@ def start(msg):
     welcome = (
         f"👋 Salom, {first_name}!\n\n"
         f"🎬 Moviequi Bot ga xush kelibsiz!\n\n"
-        f"📽 Minglab kinolar sizni kutmoqda!\n"
-        f"🔍 Qidiruv orqali kerakli kontentni toping.\n\n"
+        f"📽 Minglab kinolar sizni kutmoqda!\n\n"
+        f"🔢 Iltimos, film kodini kiriting:"
     )
-    bot.send_message(msg.chat.id, welcome, reply_markup=main_keyboard(user_id))
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    if is_admin(user_id):
+        markup.row("👑 Admin Panel")
+    bot.send_message(msg.chat.id, welcome, reply_markup=markup)
+    bot.register_next_step_handler(msg, get_movie_from_start)
 @bot.message_handler(func=lambda m: m.text == "👑 Admin Panel")
 @check_sub_decorator
 def admin_panel(msg):
@@ -897,14 +902,60 @@ def save_movie(msg, code, title, description, year=2024, genre="Noma'lum", count
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Bazaga saqlashda xatolik: {e}")
     conn.close()
-@bot.message_handler(func=lambda m: m.text == "🎬 Kino")
+
+def get_movie_from_start(msg):
+    """Foydalanuvchi start keyin kodni kiritadi"""
+    if msg.text == "👑 Admin Panel":
+        admin_panel(msg)
+        return
+    
+    code = msg.text.strip().upper()
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM movies WHERE code = ?', (code,))
+    movie = c.fetchone()
+    if not movie:
+        conn.close()
+        bot.send_message(msg.chat.id, f"❌ `{code}` kodli film topilmadi!\n\n🔢 Qayta kod kiriting:", parse_mode="Markdown")
+        bot.register_next_step_handler(msg, get_movie_from_start)
+        return
+    
+    user_id = msg.from_user.id
+    c.execute('INSERT INTO statistics VALUES (NULL, ?, ?, ?)',
+              (user_id, code, datetime.now().strftime("%Y-%m-%d %H:%M")))
+    c.execute('UPDATE movies SET views = views + 1 WHERE code = ?', (code,))
+    conn.commit()
+    conn.close()
+    
+    caption = f"🎬 *{movie[2]}*\n"
+    if movie[4] and movie[4].strip() not in ["None", "Tavsif yo'q", ""]:
+        caption += f"\n📝 {movie[4]}\n"
+    if movie[6] and str(movie[6]) != "0":
+        caption += f"\n📅 Yil: {movie[6]}"
+    if movie[7] and movie[7] not in ["Noma'lum", ""]:
+        caption += f"\n🌍 Mamlakat: {movie[7]}"
+    if movie[8] and movie[8] not in ["Noma'lum", ""]:
+        caption += f"\n🎭 Janr: {movie[8]}"
+    caption += f"\n\n👁 Ko'rishlar: {movie[11] + 1}"
+    caption += f"\n🆔 Kod: `{movie[1]}`"
+    
+    try:
+        bot.send_video(msg.chat.id, movie[5], caption=caption, parse_mode="Markdown")
+        bot.send_message(msg.chat.id, "🔢 Boshqa kod kiriting:")
+        bot.register_next_step_handler(msg, get_movie_from_start)
+    except Exception as e:
+        bot.send_message(msg.chat.id, f"❌ Xatolik: {e}")
+        bot.register_next_step_handler(msg, get_movie_from_start)
+
+@bot.message_handler(func=lambda m: m.text == "🎬 Kino_DISABLED")
 @check_sub_decorator
 def movies_menu(msg):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("🔙 Orqaga")
     bot.send_message(msg.chat.id, "🔢 Film kodini kiriting:", reply_markup=markup)
-    bot.register_next_step_handler(msg, get_movie)
-def get_movie(msg):
+    bot.register_next_step_handler(msg, get_movie_OLD)
+
+def get_movie_OLD(msg):
     if msg.text == "🔙 Orqaga":
         start(msg)
         return
@@ -1207,7 +1258,9 @@ def back_handler(msg):
     if is_admin(msg.from_user.id):
         admin_panel(msg)
     else:
-        start(msg)
+        # Вернуться к вводу кода
+        bot.send_message(msg.chat.id, "🔢 Film kodini kiriting:")
+        bot.register_next_step_handler(msg, get_movie_from_start)
 @bot.message_handler(content_types=['document', 'audio', 'photo', 'sticker', 'voice'])
 def handle_other_content(msg):
     bot.send_message(msg.chat.id, 
