@@ -905,6 +905,10 @@ def save_movie(msg, code, title, description, year=2024, genre="Noma'lum", count
 
 def get_movie_from_start(msg):
     """Foydalanuvchi start keyin kodni kiritadi"""
+    if msg.text == '/start':
+        start(msg)
+        return
+    
     if msg.text.startswith('/'):
         return
     
