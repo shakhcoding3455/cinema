@@ -934,7 +934,9 @@ def get_movie_from_start(msg):
     movie = c.fetchone()
     if not movie:
         conn.close()
-        bot.send_message(msg.chat.id, f"❌ `{code}` kodli film topilmadi!\n\n🔢 Qayta kod kiriting:", parse_mode="Markdown")
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.row("🔙 Orqaga")
+        bot.send_message(msg.chat.id, f"❌ `{code}` kodli film topilmadi!\n\n🔢 Qayta kod kiriting:", parse_mode="Markdown", reply_markup=markup)
         bot.register_next_step_handler(msg, get_movie_from_start)
         return
     
@@ -958,7 +960,8 @@ def get_movie_from_start(msg):
     
     try:
         bot.send_video(msg.chat.id, movie[5], caption=caption, parse_mode="Markdown")
-        bot.send_message(msg.chat.id, "🔢 Boshqa kod kiriting:")
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        bot.send_message(msg.chat.id, "🔢 Boshqa kod kiriting:", reply_markup=markup)
         bot.register_next_step_handler(msg, get_movie_from_start)
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Xatolik: {e}")
